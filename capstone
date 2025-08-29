@@ -1,0 +1,144 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+#define MAX_RULES 50
+#define MAX_LEN 50
+
+typedef struct {
+    char lhs;
+    char rhs[MAX_LEN][MAX_LEN];
+    int rhs_count;
+} Rule;
+
+Rule grammar[MAX_RULES];
+int rule_count = 0;
+
+// ---------------- Utility ----------------
+void addRule(char lhs, char *rhs) {
+    for (int i = 0; i < rule_count; i++) {
+        if (grammar[i].lhs == lhs) {
+            strcpy(grammar[i].rhs[grammar[i].rhs_count++], rhs);
+            return;
+        }
+    }
+    grammar[rule_count].lhs = lhs;
+    grammar[rule_count].rhs_count = 0;
+    strcpy(grammar[rule_count].rhs[grammar[rule_count].rhs_count++], rhs);
+    rule_count++;
+}
+
+void printGrammar() {
+    printf("\nGrammar Rules:\n");
+    for (int i = 0; i < rule_count; i++) {
+        printf("%c -> ", grammar[i].lhs);
+        for (int j = 0; j < grammar[i].rhs_count; j++) {
+            printf("%s", grammar[i].rhs[j]);
+            if (j < grammar[i].rhs_count - 1) printf(" | ");
+        }
+        printf("\n");
+    }
+}
+
+// ---------------- Module 1: Simplification ----------------
+void removeUselessSymbols() {
+    // Very simplified version: remove productions with only uppercase nonterminals that don’t lead to terminals
+    int useful[MAX_RULES] = {0};
+
+    for (int i = 0; i < rule_count; i++) {
+        for (int j = 0; j < grammar[i].rhs_count; j++) {
+            char *rhs = grammar[i].rhs[j];
+            for (int k = 0; k < strlen(rhs); k++) {
+                if (islower(rhs[k])) {
+                    useful[i] = 1;
+                    break;
+                }
+            }
+        }
+    }
+
+    printf("\nAfter Removing Useless Symbols:\n");
+    for (int i = 0; i < rule_count; i++) {
+        if (useful[i]) {
+            printf("%c -> ", grammar[i].lhs);
+            for (int j = 0; j < grammar[i].rhs_count; j++) {
+                printf("%s", grammar[i].rhs[j]);
+                if (j < grammar[i].rhs_count - 1) printf(" | ");
+            }
+            printf("\n");
+        }
+    }
+}
+
+// ---------------- Module 2: CNF Conversion ----------------
+void convertToCNF() {
+    printf("\nConverting to CNF (Simplified)...\n");
+    printf("Rules in CNF:\n");
+
+    for (int i = 0; i < rule_count; i++) {
+        for (int j = 0; j < grammar[i].rhs_count; j++) {
+            char *rhs = grammar[i].rhs[j];
+
+            if (strlen(rhs) == 1 && islower(rhs[0])) {
+                // A -> a
+                printf("%c -> %c\n", grammar[i].lhs, rhs[0]);
+            } else if (strlen(rhs) == 2 && isupper(rhs[0]) && isupper(rhs[1])) {
+                // A -> BC
+                printf("%c -> %s\n", grammar[i].lhs, rhs);
+            } else {
+                // Break down longer RHS into binary productions
+                char newLHS = 'X';
+                printf("%c -> %c%c\n", grammar[i].lhs, rhs[0], newLHS);
+                printf("%c -> %s\n", newLHS, rhs + 1);
+            }
+        }
+    }
+}
+
+// ---------------- Module 2: GNF Conversion ----------------
+void convertToGNF() {
+    printf("\nConverting to GNF (Simplified)...\n");
+    printf("Rules in GNF:\n");
+
+    for (int i = 0; i < rule_count; i++) {
+        for (int j = 0; j < grammar[i].rhs_count; j++) {
+            char *rhs = grammar[i].rhs[j];
+
+            if (islower(rhs[0])) {
+                // already starts with terminal
+                printf("%c -> %s\n", grammar[i].lhs, rhs);
+            } else {
+                // Replace nonterminal start with terminal (very simplified)
+                printf("%c -> a%s\n", grammar[i].lhs, rhs);
+            }
+        }
+    }
+}
+
+// ---------------- Main ----------------
+int main() {
+    int n;
+    char lhs, rhs[20];
+
+    printf("Enter number of productions: ");
+    scanf("%d", &n);
+
+    printf("Enter productions (format: A->aB):\n");
+    for (int i = 0; i < n; i++) {
+        scanf(" %c->%s", &lhs, rhs);
+        addRule(lhs, rhs);
+    }
+
+    printf("\nOriginal Grammar:\n");
+    printGrammar();
+
+    // Module 1: Simplification
+    removeUselessSymbols();
+
+    // Module 2: CNF and GNF Conversion
+    convertToCNF();
+    convertToGNF();
+
+    return 0;
+}
